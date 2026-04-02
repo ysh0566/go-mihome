@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -328,6 +329,9 @@ func TestLANClientStartScansDevicesAndTracksOnlineOffline(t *testing.T) {
 	}()
 
 	if err := client.Start(context.Background()); err != nil {
+		if strings.Contains(err.Error(), "address already in use") {
+			t.Skipf("skipping due to occupied LAN UDP port: %v", err)
+		}
 		t.Fatal(err)
 	}
 	defer func() {
@@ -471,6 +475,9 @@ func TestLANClientStartUsesTransportListenerForInboundPackets(t *testing.T) {
 	}()
 
 	if err := client.Start(context.Background()); err != nil {
+		if strings.Contains(err.Error(), "address already in use") {
+			t.Skipf("skipping due to occupied LAN UDP port: %v", err)
+		}
 		t.Fatal(err)
 	}
 	defer func() {
@@ -551,6 +558,9 @@ func TestLANClientDefaultUDPTransportListensForInboundPackets(t *testing.T) {
 	}()
 
 	if err := client.Start(context.Background()); err != nil {
+		if strings.Contains(err.Error(), "address already in use") {
+			t.Skipf("skipping due to occupied LAN UDP port: %v", err)
+		}
 		t.Fatal(err)
 	}
 	defer func() {

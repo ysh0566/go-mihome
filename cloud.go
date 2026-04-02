@@ -258,6 +258,65 @@ func (c *CloudClient) GetHomeInfos(ctx context.Context) (HomeInfos, error) {
 	return infos, nil
 }
 
+// GetScenes fetches and normalizes manual scenes for the selected homes.
+func (c *CloudClient) GetScenes(ctx context.Context, homeIDs []string) ([]SceneInfo, error) {
+	infos, err := c.GetHomeInfos(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	selected := selectSceneHomes(infos, homeIDs)
+	scenes := make([]SceneInfo, 0)
+	for _, home := range selected {
+		items, err := c.fetchManualScenes(ctx, home)
+		if err != nil {
+			return nil, err
+		}
+		scenes = append(scenes, items...)
+	}
+
+	sort.SliceStable(scenes, func(i, j int) bool {
+		if scenes[i].HomeID != scenes[j].HomeID {
+			return scenes[i].HomeID < scenes[j].HomeID
+		}
+		if scenes[i].Name != scenes[j].Name {
+			return scenes[i].Name < scenes[j].Name
+		}
+		return scenes[i].ID < scenes[j].ID
+	})
+	return scenes, nil
+}
+
+// RunScene triggers one manual Xiaomi scene.
+func (c *CloudClient) RunScene(ctx context.Context, req SceneRunRequest) error {
+	sceneID := strings.TrimSpace(req.SceneID)
+	if sceneID == "" {
+		return &Error{Code: ErrInvalidArgument, Op: "run scene", Msg: "scene id is empty"}
+	}
+	ownerUID := strings.TrimSpace(req.OwnerUID)
+	if ownerUID == "" {
+		return &Error{Code: ErrInvalidArgument, Op: "run scene", Msg: "owner uid is empty"}
+	}
+
+	var resp RunSceneResponse
+	if err := c.postJSON(ctx, "/app/appgateway/miot/appsceneservice/AppSceneService/NewRunScene", RunSceneRequest{
+		SceneID:   sceneID,
+		OwnerUID:  ownerUID,
+		SceneType: 2,
+		HomeID:    strings.TrimSpace(req.HomeID),
+		RoomID:    strings.TrimSpace(req.RoomID),
+	}, &resp); err != nil {
+		return err
+	}
+	if resp.Code != 0 {
+		return fmt.Errorf("run scene failed: code %d", resp.Code)
+	}
+	if !resp.Result {
+		return fmt.Errorf("scene %s was not accepted", sceneID)
+	}
+	return nil
+}
+
 // GetDevices fetches devices for the selected homes and normalizes the result.
 func (c *CloudClient) GetDevices(ctx context.Context, homeIDs []string) (DeviceSnapshot, error) {
 	infos, homes, baseDIDs, err := c.buildHomeDeviceBase(ctx, homeIDs)
@@ -514,6 +573,34 @@ func (c *CloudClient) fetchDevRoomPage(ctx context.Context, startID string) ([]G
 	return resp.Result.Info, resp.Result.HasMore, resp.Result.MaxID, nil
 }
 
+func (c *CloudClient) fetchManualScenes(ctx context.Context, home HomeInfo) ([]SceneInfo, error) {
+	var resp GetManualSceneListResponse
+	if err := c.postJSON(ctx, "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList", GetManualSceneListRequest{
+		HomeID:   home.HomeID,
+		OwnerUID: home.UID,
+		Source:   "app",
+		GetType:  0,
+	}, &resp); err != nil {
+		return nil, err
+	}
+	if resp.Result == nil {
+		return nil, &Error{Code: ErrInvalidResponse, Op: "get scenes", Msg: "missing result"}
+	}
+	if resp.Code != 0 {
+		return nil, fmt.Errorf("get scenes failed: code %d", resp.Code)
+	}
+
+	scenes := make([]SceneInfo, 0, len(resp.Result))
+	for _, raw := range resp.Result {
+		scene, ok := normalizeSceneRecord(home, raw)
+		if !ok {
+			continue
+		}
+		scenes = append(scenes, scene)
+	}
+	return scenes, nil
+}
+
 func (c *CloudClient) buildHomeDeviceBase(ctx context.Context, homeIDs []string) (HomeInfos, map[string]map[string]HomeInfo, []string, error) {
 	infos, err := c.GetHomeInfos(ctx)
 	if err != nil {
@@ -696,6 +783,92 @@ func mergeHomeExtras(infos *HomeInfos, extras []GetHomeCloudHome) {
 			infos.ShareHomeList[key] = existing
 		}
 	}
+}
+
+func selectSceneHomes(infos HomeInfos, homeIDs []string) []HomeInfo {
+	selected := make(map[string]HomeInfo)
+	filterHomes := len(homeIDs) > 0
+	wanted := make(map[string]struct{}, len(homeIDs))
+	for _, homeID := range homeIDs {
+		if homeID == "" {
+			continue
+		}
+		wanted[homeID] = struct{}{}
+	}
+
+	addHome := func(home HomeInfo) {
+		if filterHomes {
+			if _, ok := wanted[home.HomeID]; !ok {
+				return
+			}
+		}
+		selected[home.HomeID] = cloneHomeInfo(home)
+	}
+
+	for _, home := range infos.HomeList {
+		addHome(home)
+	}
+	for _, home := range infos.ShareHomeList {
+		addHome(home)
+	}
+
+	ids := make([]string, 0, len(selected))
+	for id := range selected {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	out := make([]HomeInfo, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, selected[id])
+	}
+	return out
+}
+
+func normalizeSceneRecord(home HomeInfo, raw GetManualSceneListItem) (SceneInfo, bool) {
+	if raw.SceneID == "" || raw.SceneName == "" {
+		return SceneInfo{}, false
+	}
+	updateTime, err := strconv.ParseInt(strings.TrimSpace(raw.UpdateTime), 10, 64)
+	if err != nil {
+		return SceneInfo{}, false
+	}
+	scene := SceneInfo{
+		ID:         raw.SceneID,
+		Name:       raw.SceneName,
+		UID:        home.UID,
+		HomeID:     raw.HomeID,
+		HomeName:   home.HomeName,
+		RoomID:     raw.RoomID,
+		SceneType:  raw.SceneType,
+		Icon:       raw.Icon,
+		TemplateID: raw.TemplateID,
+		UpdateTime: updateTime,
+		RType:      raw.RType,
+		Enabled:    raw.Enable,
+		DeviceIDs:  append([]string(nil), raw.DIDs...),
+		ProductIDs: append([]string(nil), raw.ProductIDs...),
+	}
+	if scene.HomeID == "" {
+		scene.HomeID = home.HomeID
+	}
+	return scene, true
+}
+
+// RunSceneRequest is the typed Xiaomi cloud request envelope for manual scene execution.
+type RunSceneRequest struct {
+	SceneID   string `json:"scene_id"`
+	OwnerUID  string `json:"owner_uid"`
+	SceneType int    `json:"scene_type"`
+	HomeID    string `json:"home_id,omitempty"`
+	RoomID    string `json:"room_id,omitempty"`
+}
+
+// RunSceneResponse is the typed Xiaomi cloud response envelope for manual scene execution.
+type RunSceneResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message,omitempty"`
+	Result  bool   `json:"result"`
 }
 
 func normalizeHomeRecord(home GetHomeCloudHome) (HomeInfo, bool) {

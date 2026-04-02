@@ -6,7 +6,7 @@ The implementation is inspired by [XiaoMi/ha_xiaomi_home](https://github.com/Xia
 
 The package currently covers:
 
-- typed Xiaomi cloud OAuth and read/write APIs
+- typed Xiaomi cloud OAuth, read/write APIs, and scene listing and triggering
 - typed MIoT spec parsing with embedded rule assets
 - platform-neutral device and entity descriptors
 - network reachability and MIoT central-service discovery
@@ -15,7 +15,7 @@ The package currently covers:
 
 ## Package layout
 
-- cloud: `NewOAuthClient`, `NewCloudClient`
+- cloud: `NewOAuthClient`, `NewCloudClient`, scene listing and triggering
 - spec: `NewSpecParser`
 - entity: `NewEntityRegistry`
 - network: `NewNetworkMonitor`, `NewMIPSDiscovery`
@@ -98,6 +98,12 @@ if err != nil {
     return err
 }
 _ = homes
+
+scenes, err := client.GetScenes(ctx, nil)
+if err != nil {
+    return err
+}
+_ = scenes
 ```
 
 ## Entity example
