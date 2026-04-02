@@ -583,11 +583,11 @@ func (c *CloudClient) fetchManualScenes(ctx context.Context, home HomeInfo) ([]S
 	}, &resp); err != nil {
 		return nil, err
 	}
-	if resp.Result == nil {
-		return nil, &Error{Code: ErrInvalidResponse, Op: "get scenes", Msg: "missing result"}
-	}
 	if resp.Code != 0 {
 		return nil, fmt.Errorf("get scenes failed: code %d", resp.Code)
+	}
+	if resp.Result == nil {
+		return nil, &Error{Code: ErrInvalidResponse, Op: "get scenes", Msg: "missing result"}
 	}
 
 	scenes := make([]SceneInfo, 0, len(resp.Result))
@@ -787,7 +787,7 @@ func mergeHomeExtras(infos *HomeInfos, extras []GetHomeCloudHome) {
 
 func selectSceneHomes(infos HomeInfos, homeIDs []string) []HomeInfo {
 	selected := make(map[string]HomeInfo)
-	filterHomes := len(homeIDs) > 0
+	filterHomes := homeIDs != nil
 	wanted := make(map[string]struct{}, len(homeIDs))
 	for _, homeID := range homeIDs {
 		if homeID == "" {
