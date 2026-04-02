@@ -223,6 +223,9 @@ func TestCloudClientGetScenesNormalizesRegularAndSharedHomes(t *testing.T) {
 	if regular.TemplateID != "tpl-home-1" || regular.RType != 1 || !regular.Enabled {
 		t.Fatalf("regular scene normalized fields = %#v", regular)
 	}
+	if regular.UpdateTime != 1775147234 {
+		t.Fatalf("regular scene update time = %d", regular.UpdateTime)
+	}
 	if len(regular.DeviceIDs) != 2 || regular.DeviceIDs[0] != "device-1" || regular.DeviceIDs[1] != "device-2" {
 		t.Fatalf("regular scene devices = %#v", regular.DeviceIDs)
 	}
@@ -239,6 +242,9 @@ func TestCloudClientGetScenesNormalizesRegularAndSharedHomes(t *testing.T) {
 	}
 	if shared.TemplateID != "tpl-shared-home-1" || shared.RType != 3 || !shared.Enabled {
 		t.Fatalf("shared scene normalized fields = %#v", shared)
+	}
+	if shared.UpdateTime != 1775149234 {
+		t.Fatalf("shared scene update time = %d", shared.UpdateTime)
 	}
 	if len(shared.DeviceIDs) != 1 || shared.DeviceIDs[0] != "shared-1" {
 		t.Fatalf("shared scene devices = %#v", shared.DeviceIDs)
@@ -309,6 +315,9 @@ func TestCloudClientGetScenesNormalizesSecondRegularHome(t *testing.T) {
 	}
 	if scene.SceneType != 1 || scene.TemplateID != "tpl-home-2" || scene.RType != 2 || scene.Enabled {
 		t.Fatalf("scene normalized fields = %#v", scene)
+	}
+	if scene.UpdateTime != 1775148234 {
+		t.Fatalf("scene update time = %d", scene.UpdateTime)
 	}
 	if len(scene.DeviceIDs) != 1 || scene.DeviceIDs[0] != "device-3" {
 		t.Fatalf("scene devices = %#v", scene.DeviceIDs)
