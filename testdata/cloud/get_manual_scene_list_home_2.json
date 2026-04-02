@@ -1,0 +1,24 @@
+{
+  "code": 0,
+  "message": "ok",
+  "result": [
+    {
+      "scene_id": "scene-home-2",
+      "scene_name": "Arrive Home",
+      "scene_type": 1,
+      "icon": "https://example.test/scene-home-2.png",
+      "update_time": "1775148234",
+      "template_id": "tpl-home-2",
+      "room_id": "room-2",
+      "r_type": 2,
+      "home_id": "home-2",
+      "enable": false,
+      "dids": [
+        "device-3"
+      ],
+      "pd_ids": [
+        "201"
+      ]
+    }
+  ]
+}

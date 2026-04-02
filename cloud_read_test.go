@@ -183,6 +183,25 @@ func TestCloudClientGetDevicesPrefersRoomAssignmentWhenDeviceAppearsInHomeAndRoo
 	}
 }
 
+func TestCloudClientGetScenesNormalizesRegularAndSharedHomes(t *testing.T) {
+	client, _ := newFixtureCloudClient(t,
+		fixtureResponse{path: "/app/v2/homeroom/gethome", fixture: "testdata/cloud/gethome.json"},
+		fixtureResponse{path: "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList", fixture: "testdata/cloud/get_manual_scene_list_home_1.json"},
+		fixtureResponse{path: "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList", fixture: "testdata/cloud/get_manual_scene_list_shared_home_1.json"},
+	)
+
+	scenes, err := client.GetScenes(context.Background(), []string{"home-1", "share-home-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scenes) != 2 {
+		t.Fatalf("len(scenes) = %d, want 2", len(scenes))
+	}
+	if scenes[0].SceneType != 2 || scenes[0].TemplateID == "" {
+		t.Fatalf("scene = %#v, want normalized extra fields", scenes[0])
+	}
+}
+
 type fixtureResponse struct {
 	path    string
 	fixture string

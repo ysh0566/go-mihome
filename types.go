@@ -174,3 +174,29 @@ const (
 
 // DeviceStateHandler handles one typed device state update.
 type DeviceStateHandler func(did string, state DeviceState)
+
+// SceneInfo is the normalized representation of a Xiaomi scene.
+type SceneInfo struct {
+	ID         string
+	Name       string
+	UID        string
+	HomeID     string
+	HomeName   string
+	RoomID     string
+	SceneType  int
+	Icon       string
+	TemplateID string
+	UpdateTime int64
+	RType      int
+	Enabled    bool
+	DeviceIDs  []string
+	ProductIDs []string
+}
+
+// SceneRunRequest describes one scene execution request.
+type SceneRunRequest struct {
+	SceneID  string `json:"scene_id"`
+	OwnerUID string `json:"owner_uid"`
+	HomeID   string `json:"home_id,omitempty"`
+	RoomID   string `json:"room_id,omitempty"`
+}

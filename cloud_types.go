@@ -190,6 +190,37 @@ type GetDeviceListPageExtra struct {
 	FWVersion string `json:"fw_version"`
 }
 
+// GetManualSceneListRequest is the typed request body for the Xiaomi manual scene list API.
+type GetManualSceneListRequest struct {
+	HomeID   string `json:"home_id"`
+	OwnerUID string `json:"owner_uid"`
+	Source   string `json:"source"`
+	GetType  int    `json:"get_type"`
+}
+
+// GetManualSceneListResponse is the typed Xiaomi manual scene list API response envelope.
+type GetManualSceneListResponse struct {
+	Code    int                      `json:"code"`
+	Message string                   `json:"message,omitempty"`
+	Result  []GetManualSceneListItem `json:"result"`
+}
+
+// GetManualSceneListItem is the raw Xiaomi scene record from the cloud API.
+type GetManualSceneListItem struct {
+	SceneID    string   `json:"scene_id"`
+	SceneName  string   `json:"scene_name"`
+	SceneType  int      `json:"scene_type"`
+	Icon       string   `json:"icon"`
+	UpdateTime string   `json:"update_time"`
+	TemplateID string   `json:"template_id"`
+	RoomID     string   `json:"room_id"`
+	RType      int      `json:"r_type"`
+	HomeID     string   `json:"home_id"`
+	Enable     bool     `json:"enable"`
+	DIDs       []string `json:"dids"`
+	ProductIDs []string `json:"pd_ids"`
+}
+
 // GetPropsResponse is the typed Xiaomi get properties response envelope.
 type GetPropsResponse struct {
 	Code    int              `json:"code"`
