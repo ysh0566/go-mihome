@@ -813,7 +813,6 @@ func runRuntime(ctx context.Context, cfg exampleutil.RuntimeExampleConfig, diag 
 			for _, v := range client.Devices() {
 				fmt.Println(v.Info.Name, v.State)
 			}
-			client.GetProperty()
 		}
 	}
 }
