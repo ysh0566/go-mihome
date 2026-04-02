@@ -2,6 +2,8 @@
 
 `go-mihome` provides a root-level `package miot` for reusable Xiaomi MIoT primitives in Go.
 
+The implementation is inspired by [XiaoMi/ha_xiaomi_home](https://github.com/XiaoMi/ha_xiaomi_home), the Xiaomi Home integration for Home Assistant.
+
 The package currently covers:
 
 - typed Xiaomi cloud OAuth and read/write APIs
