@@ -578,8 +578,8 @@ func (c *CloudClient) fetchManualScenes(ctx context.Context, home HomeInfo) ([]S
 	if err := c.postJSON(ctx, "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList", GetManualSceneListRequest{
 		HomeID:   home.HomeID,
 		OwnerUID: home.UID,
-		Source:   "app",
-		GetType:  0,
+		Source:   "zkp",
+		GetType:  2,
 	}, &resp); err != nil {
 		return nil, err
 	}
@@ -853,22 +853,6 @@ func normalizeSceneRecord(home HomeInfo, raw GetManualSceneListItem) (SceneInfo,
 		scene.HomeID = home.HomeID
 	}
 	return scene, true
-}
-
-// RunSceneRequest is the typed Xiaomi cloud request envelope for manual scene execution.
-type RunSceneRequest struct {
-	SceneID   string `json:"scene_id"`
-	OwnerUID  string `json:"owner_uid"`
-	SceneType int    `json:"scene_type"`
-	HomeID    string `json:"home_id,omitempty"`
-	RoomID    string `json:"room_id,omitempty"`
-}
-
-// RunSceneResponse is the typed Xiaomi cloud response envelope for manual scene execution.
-type RunSceneResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message,omitempty"`
-	Result  bool   `json:"result"`
 }
 
 func normalizeHomeRecord(home GetHomeCloudHome) (HomeInfo, bool) {

@@ -221,6 +221,22 @@ type GetManualSceneListItem struct {
 	ProductIDs []string `json:"pd_ids"`
 }
 
+// RunSceneRequest is the typed Xiaomi cloud request envelope for manual scene execution.
+type RunSceneRequest struct {
+	SceneID   string `json:"scene_id"`
+	OwnerUID  string `json:"owner_uid"`
+	SceneType int    `json:"scene_type"`
+	HomeID    string `json:"home_id,omitempty"`
+	RoomID    string `json:"room_id,omitempty"`
+}
+
+// RunSceneResponse is the typed Xiaomi cloud response envelope for manual scene execution.
+type RunSceneResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message,omitempty"`
+	Result  bool   `json:"result"`
+}
+
 // GetPropsResponse is the typed Xiaomi get properties response envelope.
 type GetPropsResponse struct {
 	Code    int              `json:"code"`
