@@ -1,0 +1,7 @@
+.worktrees/
+.idea/
+auth.json
+.miot-example-cache/
+**/.miot-example-cache/
+ha_xiaomi_home/
+docs/

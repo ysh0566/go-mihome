@@ -1,0 +1,31 @@
+{
+  "code": 0,
+  "message": "ok",
+  "result": {
+    "info": [
+      {
+        "id": "home-1",
+        "uid": 100000001,
+        "name": "Demo Home",
+        "city_id": 999000,
+        "longitude": 10.0000,
+        "latitude": 20.0000,
+        "address": "Example City",
+        "dids": [
+          "extra-home-device-2"
+        ],
+        "roomlist": [
+          {
+            "id": "room-1",
+            "name": "Demo Room",
+            "dids": [
+              "room-light-extra-2"
+            ]
+          }
+        ]
+      }
+    ],
+    "has_more": false,
+    "max_id": ""
+  }
+}

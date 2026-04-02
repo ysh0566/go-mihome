@@ -1,0 +1,16 @@
+{
+  "code": 0,
+  "message": "ok",
+  "result": [
+    {
+      "did": "demo-prop-device-1",
+      "iid": "0.2.1",
+      "siid": 2,
+      "piid": 1,
+      "value": true,
+      "code": 0,
+      "updateTime": 1774954818,
+      "exe_time": 0
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "code": 0,
+  "message": "ok",
+  "result": {
+    "homelist": [
+      {
+        "id": "home-1",
+        "uid": 100000001,
+        "name": "Demo Home",
+        "city_id": 999000,
+        "longitude": 10.0000,
+        "latitude": 20.0000,
+        "address": "Example City",
+        "dids": [
+          "demo-hub-1"
+        ],
+        "roomlist": [
+          {
+            "id": "room-1",
+            "name": "Demo Room",
+            "dids": [
+              "room-light-1"
+            ]
+          }
+        ]
+      }
+    ],
+    "share_home_list": [],
+    "has_more": true,
+    "max_id": "cursor-1"
+  }
+}

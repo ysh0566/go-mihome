@@ -1,0 +1,60 @@
+{
+  "urn": "urn:miot-spec-v2:device:light:0000A001:yeelink-ml1:1:0000C802",
+  "name": "light",
+  "description": "Light",
+  "description_trans": "Light",
+  "services": [
+    {
+      "iid": 2,
+      "type": "urn:miot-spec-v2:service:light:00007802:yeelink-ml1:1",
+      "name": "light",
+      "description": "Light",
+      "description_trans": "Light",
+      "properties": [
+        {
+          "iid": 1,
+          "type": "urn:miot-spec-v2:property:on:00000006:yeelink-ml1:1",
+          "name": "on",
+          "description": "Switch Status",
+          "description_trans": "Switch Status",
+          "format": "bool",
+          "access": ["read", "write", "notify"],
+          "value_list": {
+            "items": [
+              {"name": "false", "value": false, "description": "Close"},
+              {"name": "true", "value": true, "description": "Open"}
+            ]
+          },
+          "readable": true,
+          "writable": true,
+          "notifiable": true
+        },
+        {
+          "iid": 2,
+          "type": "urn:miot-spec-v2:property:brightness:0000000D:yeelink-ml1:1",
+          "name": "brightness",
+          "description": "Brightness",
+          "description_trans": "Brightness",
+          "format": "uint8",
+          "access": ["read", "write", "notify"],
+          "value_range": {"min": 1, "max": 100, "step": 1},
+          "readable": true,
+          "writable": true,
+          "notifiable": true
+        }
+      ],
+      "events": [],
+      "actions": [
+        {
+          "iid": 1,
+          "type": "urn:miot-spec-v2:action:identify:0000280C:yeelink-ml1:1",
+          "name": "identify",
+          "description": "Identify",
+          "description_trans": "Identify",
+          "in": [],
+          "out": []
+        }
+      ]
+    }
+  ]
+}

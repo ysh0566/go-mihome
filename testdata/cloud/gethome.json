@@ -1,0 +1,58 @@
+{
+  "code": 0,
+  "message": "ok",
+  "result": {
+    "homelist": [
+      {
+        "id": "home-1",
+        "uid": 100000001,
+        "name": "Demo Home",
+        "city_id": 999000,
+        "longitude": 10.0000,
+        "latitude": 20.0000,
+        "address": "Example City",
+        "dids": [
+          "demo-hub-1",
+          "miwifi.router",
+          "era.airp.cwb03"
+        ],
+        "roomlist": [
+          {
+            "id": "room-1",
+            "name": "Demo Room",
+            "dids": [
+              "demo-hub-1.s1",
+              "room-light-1",
+              "room-sensor-1"
+            ]
+          }
+        ]
+      }
+    ],
+    "share_home_list": [
+      {
+        "id": "share-home-1",
+        "uid": 200000001,
+        "name": "Shared Demo Home",
+        "city_id": 999000,
+        "longitude": 10.0100,
+        "latitude": 20.0100,
+        "address": "Example City",
+        "dids": [
+          "shared-1"
+        ],
+        "roomlist": [
+          {
+            "id": "share-room-1",
+            "name": "Guest Demo Room",
+            "dids": [
+              "shared-1"
+            ]
+          }
+        ]
+      }
+    ],
+    "has_more": false,
+    "max_id": ""
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "data": {
+    "unionId": "union-id",
+    "miliaoNick": "example-user",
+    "miliaoIcon": "https://example.com/avatar.jpg",
+    "miliaoIcon_75": "https://example.com/avatar_75.jpg",
+    "miliaoIcon_90": "https://example.com/avatar_90.jpg",
+    "miliaoIcon_120": "https://example.com/avatar_120.jpg",
+    "miliaoIcon_320": "https://example.com/avatar_320.jpg",
+    "miliaoIcon_orig": "https://example.com/avatar_orig.jpg"
+  },
+  "result": "ok",
+  "code": 0,
+  "description": "no error",
+  "traceId": "trace-id"
+}

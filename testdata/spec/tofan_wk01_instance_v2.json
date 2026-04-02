@@ -1,0 +1,14 @@
+{
+  "type": "urn:miot-spec-v2:device:thermostat:0000A031:tofan-wk01:1:0000C822",
+  "description": "Fixture Thermostat v2",
+  "services": [
+    {
+      "iid": 1,
+      "type": "urn:miot-spec-v2:service:device-information:00007801:miot:1",
+      "description": "Device Information",
+      "properties": [],
+      "actions": [],
+      "events": []
+    }
+  ]
+}

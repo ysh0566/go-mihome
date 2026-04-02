@@ -1,0 +1,189 @@
+{
+  "code": 0,
+  "message": "ok",
+  "result": {
+    "list": [
+      {
+        "did": "demo-hub-1",
+        "uid": 100000001,
+        "name": "Gateway Light",
+        "spec_type": "urn:miot-spec-v2:device:light:0000A001:yeelink-light-ml1:1",
+        "model": "yeelink.light.ml1",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": true,
+        "pid": 0,
+        "token": "token-parent",
+        "isOnline": true,
+        "icon": "https://example.com/gateway-light.png",
+        "parent_id": "",
+        "voice_ctrl": 0,
+        "rssi": -46,
+        "longitude": "10.0000",
+        "latitude": "20.0000",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:01",
+        "orderTime": 1710000000,
+        "extra": {
+          "fw_version": "1.0.0"
+        }
+      },
+      {
+        "did": "demo-hub-1.s1",
+        "uid": 100000001,
+        "name": "Gateway Light Sensor",
+        "spec_type": "urn:miot-spec-v2:device:light:0000A001:yeelink-light-ml1:1",
+        "model": "yeelink.light.ml1",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": true,
+        "pid": 0,
+        "token": "token-sub",
+        "isOnline": true,
+        "icon": "https://example.com/gateway-light-s1.png",
+        "parent_id": "demo-hub-1",
+        "voice_ctrl": 0,
+        "rssi": -47,
+        "longitude": "10.0000",
+        "latitude": "20.0000",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:01",
+        "orderTime": 1710000001,
+        "extra": {
+          "fw_version": "1.0.0"
+        }
+      },
+      {
+        "did": "room-light-1",
+        "uid": 100000001,
+        "name": "Corner Lamp",
+        "spec_type": "urn:miot-spec-v2:device:light:0000A001:yeelink-light-lamp1:1",
+        "model": "yeelink.light.lamp1",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": true,
+        "pid": 1,
+        "token": "token-room-light",
+        "isOnline": false,
+        "icon": "https://example.com/corner-lamp.png",
+        "parent_id": "",
+        "voice_ctrl": 0,
+        "rssi": -51,
+        "longitude": "10.0001",
+        "latitude": "20.0001",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:02",
+        "orderTime": 1710000100,
+        "extra": {
+          "fw_version": "2.1.0"
+        }
+      },
+      {
+        "did": "room-sensor-1",
+        "uid": 100000001,
+        "name": "Room Sensor",
+        "spec_type": "urn:miot-spec-v2:device:sensor:0000A00B:lumi-sensor-magnet:1",
+        "model": "lumi.sensor_magnet",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": false,
+        "pid": 1,
+        "token": "token-room-sensor",
+        "isOnline": true,
+        "icon": "https://example.com/room-sensor.png",
+        "parent_id": "",
+        "voice_ctrl": 0,
+        "rssi": -65,
+        "longitude": "10.0002",
+        "latitude": "20.0002",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:03",
+        "orderTime": 1710000200,
+        "extra": {
+          "fw_version": "3.4.5"
+        }
+      },
+      {
+        "did": "shared-1",
+        "uid": 100000001,
+        "name": "Shared Plug",
+        "spec_type": "urn:miot-spec-v2:device:plug:0000A007:chuangmi-plug-v1:1",
+        "model": "chuangmi.plug.v1",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": true,
+        "pid": 0,
+        "token": "token-shared",
+        "isOnline": true,
+        "icon": "https://example.com/shared-plug.png",
+        "parent_id": "",
+        "voice_ctrl": 0,
+        "rssi": -58,
+        "owner": {
+          "userid": 200000002,
+          "nickname": "Shared Demo User"
+        },
+        "longitude": "10.0003",
+        "latitude": "20.0003",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:04",
+        "orderTime": 1710000300,
+        "extra": {
+          "fw_version": "4.0.0"
+        }
+      },
+      {
+        "did": "miwifi.router",
+        "uid": 100000001,
+        "name": "Router",
+        "spec_type": "urn:miot-spec-v2:device:router:0000A009:miwifi-router:1",
+        "model": "miwifi.router.r1",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": true,
+        "pid": 0,
+        "token": "token-router",
+        "isOnline": true,
+        "icon": "https://example.com/router.png",
+        "parent_id": "",
+        "voice_ctrl": 0,
+        "rssi": -35,
+        "longitude": "10.0004",
+        "latitude": "20.0004",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:05",
+        "orderTime": 1710000400,
+        "extra": {
+          "fw_version": "5.0.0"
+        }
+      },
+      {
+        "did": "era.airp.cwb03",
+        "uid": 100000001,
+        "name": "Unsupported Purifier",
+        "spec_type": "urn:miot-spec-v2:device:airpurifier:0000A007:era-airp-cwb03:1",
+        "model": "era.airp.cwb03",
+        "city_id": 999000,
+        "permitLevel": 16,
+        "remote_controllable": true,
+        "pid": 0,
+        "token": "token-unsupported",
+        "isOnline": true,
+        "icon": "https://example.com/purifier.png",
+        "parent_id": "",
+        "voice_ctrl": 0,
+        "rssi": -44,
+        "longitude": "10.0005",
+        "latitude": "20.0005",
+        "ssid": "ExampleWiFi",
+        "bssid": "02:00:00:00:00:06",
+        "orderTime": 1710000500,
+        "extra": {
+          "fw_version": "6.0.0"
+        }
+      }
+    ],
+    "has_more": false,
+    "next_start_did": ""
+  }
+}
