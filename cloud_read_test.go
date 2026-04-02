@@ -1,6 +1,7 @@
 package miot
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -186,8 +187,18 @@ func TestCloudClientGetDevicesPrefersRoomAssignmentWhenDeviceAppearsInHomeAndRoo
 func TestCloudClientGetScenesNormalizesRegularAndSharedHomes(t *testing.T) {
 	client, _ := newFixtureCloudClient(t,
 		fixtureResponse{path: "/app/v2/homeroom/gethome", fixture: "testdata/cloud/gethome.json"},
-		fixtureResponse{path: "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList", fixture: "testdata/cloud/get_manual_scene_list_home_1.json"},
-		fixtureResponse{path: "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList", fixture: "testdata/cloud/get_manual_scene_list_shared_home_1.json"},
+		fixtureResponse{
+			path:         "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList",
+			fixture:      "testdata/cloud/get_manual_scene_list_home_1.json",
+			wantHomeID:   "home-1",
+			wantOwnerUID: "100000001",
+		},
+		fixtureResponse{
+			path:         "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList",
+			fixture:      "testdata/cloud/get_manual_scene_list_shared_home_1.json",
+			wantHomeID:   "share-home-1",
+			wantOwnerUID: "200000001",
+		},
 	)
 
 	scenes, err := client.GetScenes(context.Background(), []string{"home-1", "share-home-1"})
@@ -197,14 +208,122 @@ func TestCloudClientGetScenesNormalizesRegularAndSharedHomes(t *testing.T) {
 	if len(scenes) != 2 {
 		t.Fatalf("len(scenes) = %d, want 2", len(scenes))
 	}
-	if scenes[0].SceneType != 2 || scenes[0].TemplateID == "" {
-		t.Fatalf("scene = %#v, want normalized extra fields", scenes[0])
+	byHome := make(map[string]SceneInfo, len(scenes))
+	for _, scene := range scenes {
+		byHome[scene.HomeID] = scene
+	}
+
+	regular := byHome["home-1"]
+	if regular.ID != "scene-home-1" || regular.Name != "Leave Home" || regular.UID != "100000001" {
+		t.Fatalf("regular scene = %#v", regular)
+	}
+	if regular.HomeName != "Demo Home" || regular.RoomID != "room-1" || regular.SceneType != 2 {
+		t.Fatalf("regular scene placement = %#v", regular)
+	}
+	if regular.TemplateID != "tpl-home-1" || regular.RType != 1 || !regular.Enabled {
+		t.Fatalf("regular scene normalized fields = %#v", regular)
+	}
+	if len(regular.DeviceIDs) != 2 || regular.DeviceIDs[0] != "device-1" || regular.DeviceIDs[1] != "device-2" {
+		t.Fatalf("regular scene devices = %#v", regular.DeviceIDs)
+	}
+	if len(regular.ProductIDs) != 2 || regular.ProductIDs[0] != "101" || regular.ProductIDs[1] != "102" {
+		t.Fatalf("regular scene products = %#v", regular.ProductIDs)
+	}
+
+	shared := byHome["share-home-1"]
+	if shared.ID != "scene-shared-home-1" || shared.Name != "Guest Mode" || shared.UID != "200000001" {
+		t.Fatalf("shared scene = %#v", shared)
+	}
+	if shared.HomeName != "Shared Demo Home" || shared.RoomID != "share-room-1" || shared.SceneType != 1 {
+		t.Fatalf("shared scene placement = %#v", shared)
+	}
+	if shared.TemplateID != "tpl-shared-home-1" || shared.RType != 3 || !shared.Enabled {
+		t.Fatalf("shared scene normalized fields = %#v", shared)
+	}
+	if len(shared.DeviceIDs) != 1 || shared.DeviceIDs[0] != "shared-1" {
+		t.Fatalf("shared scene devices = %#v", shared.DeviceIDs)
+	}
+	if len(shared.ProductIDs) != 1 || shared.ProductIDs[0] != "301" {
+		t.Fatalf("shared scene products = %#v", shared.ProductIDs)
+	}
+}
+
+func TestCloudClientGetScenesNormalizesSecondRegularHome(t *testing.T) {
+	client, _ := newFixtureCloudClient(t,
+		fixtureResponse{
+			path: "/app/v2/homeroom/gethome",
+			body: `{
+  "code": 0,
+  "message": "ok",
+  "result": {
+    "homelist": [
+      {
+        "id": "home-2",
+        "uid": 100000002,
+        "name": "Second Demo Home",
+        "city_id": 999001,
+        "longitude": 10.0200,
+        "latitude": 20.0200,
+        "address": "Example City",
+        "dids": [
+          "second-device-1"
+        ],
+        "roomlist": [
+          {
+            "id": "room-2",
+            "name": "Second Room",
+            "dids": [
+              "second-device-1"
+            ]
+          }
+        ]
+      }
+    ],
+    "share_home_list": [],
+    "has_more": false,
+    "max_id": ""
+  }
+}`,
+		},
+		fixtureResponse{
+			path:         "/app/appgateway/miot/appsceneservice/AppSceneService/GetManualSceneList",
+			fixture:      "testdata/cloud/get_manual_scene_list_home_2.json",
+			wantHomeID:   "home-2",
+			wantOwnerUID: "100000002",
+		},
+	)
+
+	scenes, err := client.GetScenes(context.Background(), []string{"home-2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scenes) != 1 {
+		t.Fatalf("len(scenes) = %d, want 1", len(scenes))
+	}
+	scene := scenes[0]
+	if scene.ID != "scene-home-2" || scene.Name != "Arrive Home" || scene.UID != "100000002" {
+		t.Fatalf("scene = %#v", scene)
+	}
+	if scene.HomeID != "home-2" || scene.HomeName != "Second Demo Home" || scene.RoomID != "room-2" {
+		t.Fatalf("scene placement = %#v", scene)
+	}
+	if scene.SceneType != 1 || scene.TemplateID != "tpl-home-2" || scene.RType != 2 || scene.Enabled {
+		t.Fatalf("scene normalized fields = %#v", scene)
+	}
+	if len(scene.DeviceIDs) != 1 || scene.DeviceIDs[0] != "device-3" {
+		t.Fatalf("scene devices = %#v", scene.DeviceIDs)
+	}
+	if len(scene.ProductIDs) != 1 || scene.ProductIDs[0] != "201" {
+		t.Fatalf("scene products = %#v", scene.ProductIDs)
 	}
 }
 
 type fixtureResponse struct {
-	path    string
-	fixture string
+	path         string
+	fixture      string
+	body         string
+	wantHomeID   string
+	wantOwnerUID string
 }
 
 func newFixtureCloudClient(t *testing.T, responses ...fixtureResponse) (*CloudClient, *fixtureDoer) {
@@ -232,9 +351,15 @@ func (p staticTokenProvider) AccessToken(context.Context) (string, error) {
 
 type fixtureDoer struct {
 	t         *testing.T
-	responses map[string][][]byte
+	responses map[string][]fixtureEntry
 	counts    map[string]int
 	batches   []int
+}
+
+type fixtureEntry struct {
+	body         []byte
+	wantHomeID   string
+	wantOwnerUID string
 }
 
 func newFixtureDoer(t *testing.T, responses ...fixtureResponse) *fixtureDoer {
@@ -242,21 +367,35 @@ func newFixtureDoer(t *testing.T, responses ...fixtureResponse) *fixtureDoer {
 
 	doer := &fixtureDoer{
 		t:         t,
-		responses: make(map[string][][]byte),
+		responses: make(map[string][]fixtureEntry),
 		counts:    make(map[string]int),
 	}
 	for _, resp := range responses {
-		data, err := os.ReadFile(filepath.Clean(resp.fixture))
-		if err != nil {
-			t.Fatal(err)
+		var data []byte
+		var err error
+		if resp.body != "" {
+			data = []byte(resp.body)
+		} else {
+			data, err = os.ReadFile(filepath.Clean(resp.fixture))
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
-		doer.responses[resp.path] = append(doer.responses[resp.path], data)
+		doer.responses[resp.path] = append(doer.responses[resp.path], fixtureEntry{
+			body:         data,
+			wantHomeID:   resp.wantHomeID,
+			wantOwnerUID: resp.wantOwnerUID,
+		})
 	}
 	return doer
 }
 
 func (d *fixtureDoer) Do(req *http.Request) (*http.Response, error) {
 	d.counts[req.URL.Path]++
+	bodyBytes, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
 	if got := req.Header.Get("Authorization"); got != "Beareraccess-token" {
 		return nil, &Error{Code: ErrInvalidArgument, Op: "fixture doer", Msg: "authorization header = " + got}
 	}
@@ -267,25 +406,75 @@ func (d *fixtureDoer) Do(req *http.Request) (*http.Response, error) {
 		var payload struct {
 			DIDs []string `json:"dids"`
 		}
-		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+		if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&payload); err != nil {
 			return nil, err
 		}
 		d.batches = append(d.batches, len(payload.DIDs))
 	}
-	bodies, ok := d.responses[req.URL.Path]
-	if !ok || len(bodies) == 0 {
+	entries, ok := d.responses[req.URL.Path]
+	if !ok || len(entries) == 0 {
 		return nil, &Error{Code: ErrInvalidArgument, Op: "fixture doer", Msg: "missing fixture for " + req.URL.Path}
 	}
-	index := d.counts[req.URL.Path] - 1
-	if index >= len(bodies) {
-		index = len(bodies) - 1
+	var body []byte
+	if hasSceneFixture(entries) {
+		match := sceneFixtureMatch{
+			homeID:   readJSONField(bodyBytes, "home_id"),
+			ownerUID: readJSONField(bodyBytes, "owner_uid"),
+		}
+		for _, entry := range entries {
+			if entry.wantHomeID == match.homeID && entry.wantOwnerUID == match.ownerUID {
+				body = entry.body
+				break
+			}
+		}
+		if body == nil {
+			return nil, &Error{Code: ErrInvalidArgument, Op: "fixture doer", Msg: "missing scene fixture for " + req.URL.Path + " home_id=" + match.homeID + " owner_uid=" + match.ownerUID}
+		}
+	} else {
+		index := d.counts[req.URL.Path] - 1
+		if index >= len(entries) {
+			index = len(entries) - 1
+		}
+		body = entries[index].body
 	}
-	body := bodies[index]
 	return &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     make(http.Header),
-		Body:       io.NopCloser(strings.NewReader(string(body))),
+		Body:       io.NopCloser(bytes.NewReader(body)),
 	}, nil
+}
+
+type sceneFixtureMatch struct {
+	homeID   string
+	ownerUID string
+}
+
+func hasSceneFixture(entries []fixtureEntry) bool {
+	for _, entry := range entries {
+		if entry.wantHomeID != "" || entry.wantOwnerUID != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func readJSONField(body []byte, field string) string {
+	if len(body) == 0 {
+		return ""
+	}
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return ""
+	}
+	raw, ok := payload[field]
+	if !ok {
+		return ""
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return ""
+	}
+	return value
 }
 
 func (d *fixtureDoer) calls(path string) int {
