@@ -37,38 +37,70 @@ type DeviceSnapshot struct {
 
 // DeviceInfo is the normalized representation of a Xiaomi device.
 type DeviceInfo struct {
-	DID          string
-	UID          string
-	Name         string
-	URN          string
-	Model        string
-	ConnectType  int
-	Token        string
-	Online       bool
-	Icon         string
-	ParentID     string
-	Manufacturer string
-	VoiceCtrl    int
-	RSSI         int
-	Owner        *DeviceOwner
-	PID          int
-	LocalIP      string
-	SSID         string
-	BSSID        string
-	OrderTime    int64
-	FWVersion    string
-	HomeID       string
-	HomeName     string
-	RoomID       string
-	RoomName     string
-	GroupID      string
-	SubDevices   map[string]DeviceInfo
+	DID             string
+	UID             string
+	Name            string
+	URN             string
+	Model           string
+	ConnectType     int
+	Token           string
+	Online          bool
+	Icon            string
+	ParentID        string
+	Manufacturer    string
+	VoiceCtrl       int
+	RSSI            int
+	Owner           *DeviceOwner
+	PID             int
+	LocalIP         string
+	SSID            string
+	BSSID           string
+	OrderTime       int64
+	FWVersion       string
+	PincodeRequired bool
+	PincodeType     int
+	HomeID          string
+	HomeName        string
+	RoomID          string
+	RoomName        string
+	GroupID         string
+	SubDevices      map[string]DeviceInfo
 }
 
 // DeviceOwner is the normalized representation of a shared-device owner.
 type DeviceOwner struct {
 	UserID   string
 	Nickname string
+}
+
+// CameraVendorSecurity is the Xiaomi camera vendor security payload.
+type CameraVendorSecurity struct {
+	PublicKey      string `json:"public_key"`
+	Token          string `json:"token"`
+	SupportVendors string `json:"support_vendors"`
+	ReqKey         string `json:"req_key"`
+	MissVersion    string `json:"miss_version"`
+	P2PKeyVersion  int    `json:"p2pkey_version"`
+}
+
+// CameraVendorInfo is the Xiaomi camera vendor bootstrap payload.
+type CameraVendorInfo struct {
+	VendorID       int    `json:"vendor_id"`
+	SupportVendor  string `json:"support_vendor"`
+	P2PID          string `json:"p2p_id"`
+	InitString     string `json:"init_string"`
+	PublicKey      string `json:"public_key"`
+	Sign           string `json:"sign"`
+	RawVendor      any    `json:"raw_vendor,omitempty"`
+	RawVendorParam any    `json:"raw_vendor_params,omitempty"`
+}
+
+// CameraPerfEnvelope is the Xiaomi camera performance reporting payload.
+type CameraPerfEnvelope struct {
+	Head     map[string]any `json:"head"`
+	DID      string         `json:"did"`
+	DataType string         `json:"dataType"`
+	Data     any            `json:"data"`
 }
 
 // PropertyQuery identifies one MIoT property by device and property coordinates.

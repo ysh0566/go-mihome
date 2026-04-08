@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,15 +17,21 @@ import (
 )
 
 const (
-	cloudBizID            = "haapi"
-	cloudHomeLimit        = 150
-	cloudDeviceLimit      = 200
-	cloudDeviceChunkSize  = 150
-	cloudAppVersion       = 9
-	cloudPropertySource   = 1
-	sharedDeviceRoomID    = "shared_device"
-	notSupportGroupID     = "NotSupport"
-	openAccountProfileURL = "https://open.account.xiaomi.com/user/profile"
+	cloudBizID                  = "haapi"
+	cloudHomeLimit              = 150
+	cloudDeviceLimit            = 200
+	cloudDeviceChunkSize        = 150
+	cloudAppVersion             = 9
+	cloudPropertySource         = 1
+	sharedDeviceRoomID          = "shared_device"
+	notSupportGroupID           = "NotSupport"
+	openAccountProfileURL       = "https://open.account.xiaomi.com/user/profile"
+	cameraVendorSecurityPath    = "/app/v2/device/miss_get_vendor_security"
+	cameraVendorPath            = "/v2/device/miss_get_vendor"
+	cameraPincodeGenericPath    = "/app/v2/pincode/check_generic"
+	cameraPincodeStandalonePath = "/app/pincode/check_alone"
+	cameraPerfDataPath          = "/app/v2/device/camera_perf_data"
+	cameraPerfDataTypeEvent     = "EventData"
 )
 
 var unsupportedCloudModels = map[string]struct{}{
@@ -389,6 +396,127 @@ func (c *CloudClient) GetDevicesByDID(ctx context.Context, dids []string) ([]Dev
 		}
 	}
 	return out, nil
+}
+
+// GetDeviceByDID fetches and normalizes one device by DID.
+func (c *CloudClient) GetDeviceByDID(ctx context.Context, did string) (DeviceInfo, error) {
+	did = strings.TrimSpace(did)
+	if did == "" {
+		return DeviceInfo{}, &Error{Code: ErrInvalidArgument, Op: "get device by did", Msg: "did is empty"}
+	}
+	devices, err := c.GetDevicesByDID(ctx, []string{did})
+	if err != nil {
+		return DeviceInfo{}, err
+	}
+	for _, device := range devices {
+		if device.DID == did {
+			return device, nil
+		}
+	}
+	return DeviceInfo{}, fmt.Errorf("device %s not found", did)
+}
+
+// GetDevice fetches and normalizes one device by DID.
+func (c *CloudClient) GetDevice(ctx context.Context, did string) (DeviceInfo, error) {
+	return c.GetDeviceByDID(ctx, did)
+}
+
+// CheckGenericCameraPincode validates a generic Xiaomi camera pincode.
+func (c *CloudClient) CheckGenericCameraPincode(ctx context.Context, did string, pincode string) (bool, error) {
+	return c.checkCameraPincode(ctx, cameraPincodeGenericPath, did, pincode)
+}
+
+// CheckStandaloneCameraPincode validates a standalone Xiaomi camera pincode.
+func (c *CloudClient) CheckStandaloneCameraPincode(ctx context.Context, did string, pincode string) (bool, error) {
+	return c.checkCameraPincode(ctx, cameraPincodeStandalonePath, did, pincode)
+}
+
+// GetCameraVendorSecurity fetches the Xiaomi camera vendor security payload.
+func (c *CloudClient) GetCameraVendorSecurity(ctx context.Context, did string) (CameraVendorSecurity, error) {
+	did = strings.TrimSpace(did)
+	if did == "" {
+		return CameraVendorSecurity{}, &Error{Code: ErrInvalidArgument, Op: "get camera vendor security", Msg: "did is empty"}
+	}
+	var resp struct {
+		Code    int                  `json:"code"`
+		Message string               `json:"message,omitempty"`
+		Result  CameraVendorSecurity `json:"result"`
+	}
+	if err := c.postJSON(ctx, cameraVendorSecurityPath, struct {
+		DID string `json:"did"`
+	}{DID: did}, &resp); err != nil {
+		return CameraVendorSecurity{}, err
+	}
+	if resp.Code != 0 {
+		return CameraVendorSecurity{}, fmt.Errorf("get camera vendor security failed: code %d", resp.Code)
+	}
+	return resp.Result, nil
+}
+
+// GetCameraVendor fetches the Xiaomi camera vendor bootstrap payload.
+func (c *CloudClient) GetCameraVendor(ctx context.Context, did string, appPublicKey []byte, supportVendors string, callerUUID string) (CameraVendorInfo, error) {
+	did = strings.TrimSpace(did)
+	if did == "" {
+		return CameraVendorInfo{}, &Error{Code: ErrInvalidArgument, Op: "get camera vendor", Msg: "did is empty"}
+	}
+	if len(appPublicKey) == 0 {
+		return CameraVendorInfo{}, &Error{Code: ErrInvalidArgument, Op: "get camera vendor", Msg: "app public key is empty"}
+	}
+	supportVendors = strings.TrimSpace(supportVendors)
+	if supportVendors == "" {
+		supportVendors = "TUTK_CS2_MTP"
+	}
+	var resp struct {
+		Code    int             `json:"code"`
+		Message string          `json:"message,omitempty"`
+		Result  json.RawMessage `json:"result"`
+	}
+	if err := c.postJSON(ctx, cameraVendorPath, struct {
+		AppPublicKey string `json:"app_pubkey"`
+		DID          string `json:"did"`
+		Support      string `json:"support_vendors"`
+		CallerUUID   string `json:"caller_uuid"`
+	}{
+		AppPublicKey: hex.EncodeToString(appPublicKey),
+		DID:          did,
+		Support:      supportVendors,
+		CallerUUID:   strings.TrimSpace(callerUUID),
+	}, &resp); err != nil {
+		return CameraVendorInfo{}, err
+	}
+	if resp.Code != 0 {
+		return CameraVendorInfo{}, fmt.Errorf("get camera vendor failed: code %d", resp.Code)
+	}
+	return parseCameraVendorInfo(resp.Result)
+}
+
+// ReportCameraPerfEvent posts one Xiaomi camera performance event.
+func (c *CloudClient) ReportCameraPerfEvent(ctx context.Context, did string, head map[string]any, data any) error {
+	did = strings.TrimSpace(did)
+	if did == "" {
+		return &Error{Code: ErrInvalidArgument, Op: "report camera perf event", Msg: "did is empty"}
+	}
+	payload := CameraPerfEnvelope{
+		Head:     cloneStringAnyMap(head),
+		DID:      did,
+		DataType: cameraPerfDataTypeEvent,
+		Data:     data,
+	}
+	if payload.Head == nil {
+		payload.Head = map[string]any{}
+	}
+	var resp struct {
+		Code    int             `json:"code"`
+		Message string          `json:"message,omitempty"`
+		Result  json.RawMessage `json:"result"`
+	}
+	if err := c.postJSON(ctx, cameraPerfDataPath, payload, &resp); err != nil {
+		return err
+	}
+	if resp.Code != 0 {
+		return fmt.Errorf("report camera perf event failed: code %d", resp.Code)
+	}
+	return nil
 }
 
 // GetProps fetches typed property values from the Xiaomi cloud API.
@@ -934,28 +1062,144 @@ func normalizeDeviceRecord(raw GetDeviceListPageDevice) (DeviceInfo, bool) {
 	}
 
 	device := DeviceInfo{
-		DID:          raw.DID,
-		UID:          strconv.FormatInt(raw.UID, 10),
-		Name:         raw.Name,
-		URN:          raw.SpecType,
-		Model:        raw.Model,
-		ConnectType:  raw.PID,
-		Token:        raw.Token,
-		Online:       raw.IsOnline,
-		Icon:         raw.Icon,
-		ParentID:     raw.ParentID,
-		Manufacturer: manufacturerFromModel(raw.Model),
-		VoiceCtrl:    raw.VoiceCtrl,
-		RSSI:         raw.RSSI,
-		Owner:        normalizedOwner,
-		PID:          raw.PID,
-		LocalIP:      localIP,
-		SSID:         raw.SSID,
-		BSSID:        raw.BSSID,
-		OrderTime:    raw.OrderTime,
-		FWVersion:    raw.Extra.FWVersion,
+		DID:             raw.DID,
+		UID:             strconv.FormatInt(raw.UID, 10),
+		Name:            raw.Name,
+		URN:             raw.SpecType,
+		Model:           raw.Model,
+		ConnectType:     raw.PID,
+		Token:           raw.Token,
+		Online:          raw.IsOnline,
+		Icon:            raw.Icon,
+		ParentID:        raw.ParentID,
+		Manufacturer:    manufacturerFromModel(raw.Model),
+		VoiceCtrl:       raw.VoiceCtrl,
+		RSSI:            raw.RSSI,
+		Owner:           normalizedOwner,
+		PID:             raw.PID,
+		LocalIP:         localIP,
+		SSID:            raw.SSID,
+		BSSID:           raw.BSSID,
+		OrderTime:       raw.OrderTime,
+		FWVersion:       raw.Extra.FWVersion,
+		PincodeRequired: raw.Extra.IsSetPincode != 0,
+		PincodeType:     raw.Extra.PincodeType,
 	}
 	return device, true
+}
+
+func (c *CloudClient) checkCameraPincode(ctx context.Context, path string, did string, pincode string) (bool, error) {
+	did = strings.TrimSpace(did)
+	pincode = strings.TrimSpace(pincode)
+	if did == "" {
+		return false, &Error{Code: ErrInvalidArgument, Op: "check camera pincode", Msg: "did is empty"}
+	}
+	if len(pincode) != 4 {
+		return false, &Error{Code: ErrInvalidArgument, Op: "check camera pincode", Msg: "pincode must be 4 digits"}
+	}
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message,omitempty"`
+		Result  bool   `json:"result"`
+	}
+	if err := c.postJSON(ctx, path, struct {
+		DID     string `json:"did"`
+		Pincode string `json:"pincode"`
+	}{DID: did, Pincode: pincode}, &resp); err != nil {
+		return false, err
+	}
+	if resp.Code != 0 {
+		return false, fmt.Errorf("check camera pincode failed: code %d", resp.Code)
+	}
+	return resp.Result, nil
+}
+
+func parseCameraVendorInfo(payload json.RawMessage) (CameraVendorInfo, error) {
+	if len(payload) == 0 {
+		return CameraVendorInfo{}, &Error{Code: ErrInvalidResponse, Op: "parse camera vendor info", Msg: "empty payload"}
+	}
+	var raw struct {
+		PublicKey     string          `json:"public_key"`
+		Sign          string          `json:"sign"`
+		P2PID         string          `json:"p2p_id"`
+		InitString    string          `json:"init_string"`
+		SupportVendor string          `json:"support_vendor"`
+		VendorName    string          `json:"vendor_name"`
+		Vendor        json.RawMessage `json:"vendor"`
+	}
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		return CameraVendorInfo{}, Wrap(ErrInvalidResponse, "parse camera vendor info", err)
+	}
+	info := CameraVendorInfo{
+		PublicKey:     raw.PublicKey,
+		Sign:          raw.Sign,
+		P2PID:         raw.P2PID,
+		InitString:    raw.InitString,
+		SupportVendor: firstNonEmpty(raw.SupportVendor, raw.VendorName),
+	}
+	if len(raw.Vendor) == 0 {
+		return info, nil
+	}
+
+	var rawVendor map[string]any
+	if err := json.Unmarshal(raw.Vendor, &rawVendor); err == nil {
+		info.RawVendor = rawVendor
+	}
+
+	var vendor struct {
+		Vendor       int             `json:"vendor"`
+		VendorParams json.RawMessage `json:"vendor_params"`
+	}
+	if err := json.Unmarshal(raw.Vendor, &vendor); err != nil {
+		return info, nil
+	}
+	info.VendorID = vendor.Vendor
+	if info.SupportVendor == "" {
+		info.SupportVendor = cameraVendorName(vendor.Vendor)
+	}
+	if len(vendor.VendorParams) == 0 {
+		return info, nil
+	}
+
+	var rawParams map[string]any
+	if err := json.Unmarshal(vendor.VendorParams, &rawParams); err == nil {
+		info.RawVendorParam = rawParams
+	}
+	var params struct {
+		P2PID      string `json:"p2p_id"`
+		InitString string `json:"init_string"`
+	}
+	if err := json.Unmarshal(vendor.VendorParams, &params); err == nil {
+		info.P2PID = firstNonEmpty(info.P2PID, params.P2PID)
+		info.InitString = firstNonEmpty(info.InitString, params.InitString)
+	}
+	return info, nil
+}
+
+func cameraVendorName(id int) string {
+	switch id {
+	case 1:
+		return "tutk"
+	case 3:
+		return "agora"
+	case 4:
+		return "cs2"
+	case 6:
+		return "mtp"
+	default:
+		return ""
+	}
+}
+
+func cloneStringAnyMap(input map[string]any) map[string]any {
+	if input == nil {
+		return nil
+	}
+	out := make(map[string]any, len(input))
+	for key, value := range input {
+		out[key] = value
+	}
+	return out
 }
 
 func manufacturerFromModel(model string) string {

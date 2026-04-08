@@ -187,7 +187,9 @@ type GetDeviceListPageOwner struct {
 
 // GetDeviceListPageExtra is the typed extra device record from the cloud API.
 type GetDeviceListPageExtra struct {
-	FWVersion string `json:"fw_version"`
+	FWVersion    string `json:"fw_version"`
+	IsSetPincode int    `json:"isSetPincode"`
+	PincodeType  int    `json:"pincodeType"`
 }
 
 // GetManualSceneListRequest is the typed request body for the Xiaomi manual scene list API.
