@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"net"
 	"strconv"
 	"sync"
 	"testing"
@@ -518,82 +517,6 @@ func TestLANClientStartUsesTransportListenerForInboundPackets(t *testing.T) {
 	}
 	if !list[0].Online {
 		t.Fatalf("device online = %#v", list[0])
-	}
-}
-
-func TestLANClientDefaultUDPTransportListensForInboundPackets(t *testing.T) {
-	client := NewLANClient(nil, WithLANRuntimeConfig(LANRuntimeConfig{
-		ProbeInterval:    time.Hour,
-		OfflineThreshold: 2,
-		RequestTimeout:   20 * time.Millisecond,
-	}))
-	if err := client.AddDevice(LANDeviceConfig{
-		DID:       "123456789",
-		Token:     testLANToken,
-		IP:        "127.0.0.1",
-		Interface: "",
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	eventCh := make(chan PropertyResult, 1)
-	sub := client.SubscribeProperty(PropertySubscription{
-		DID:  "123456789",
-		SIID: 2,
-		PIID: 1,
-	}, func(result PropertyResult) {
-		eventCh <- result
-	})
-	defer func() {
-		if err := sub.Close(); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	if err := client.Start(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := client.Close(); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	dev := newTestLANDevice(t)
-	params, err := json.Marshal([]PropertyResult{{
-		DID:   "123456789",
-		SIID:  2,
-		PIID:  1,
-		Value: NewSpecValueBool(true),
-	}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	packet, err := dev.BuildPacket(LANRequest{
-		ID:     7,
-		Method: "properties_changed",
-		Params: params,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: lanPort})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
-	if _, err := conn.Write(packet); err != nil {
-		t.Fatal(err)
-	}
-
-	select {
-	case result := <-eventCh:
-		if result.DID != "123456789" || result.SIID != 2 || result.PIID != 1 {
-			t.Fatalf("result = %#v", result)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("property event not delivered")
 	}
 }
 

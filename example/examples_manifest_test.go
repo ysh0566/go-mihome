@@ -14,6 +14,7 @@ func TestExampleProgramsExist(t *testing.T) {
 		filepath.Join("cloud_homes", "main.go"),
 		filepath.Join("cloud_props", "main.go"),
 		filepath.Join("cloud_state_cache", "main.go"),
+		filepath.Join("camera_preview", "main.go"),
 		filepath.Join("spec_parse", "main.go"),
 		filepath.Join("entity_build", "main.go"),
 		filepath.Join("mdns_discovery", "main.go"),
