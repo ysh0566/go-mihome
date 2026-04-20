@@ -134,6 +134,48 @@ func TestCameraWorkerRetriesBridgeUnavailableWithinSingleSnapshotCall(t *testing
 	}
 }
 
+func TestCameraStreamManagerRestartsWhenVideoQualityChanges(t *testing.T) {
+	var started []VideoQuality
+	manager := NewCameraStreamManager(CameraStreamManagerOptions{
+		Factory: cameraPipelineFactoryFunc(func(desc CameraStreamDescriptor, onJPEG func(JPEGFrame)) (io.Closer, error) {
+			started = append(started, desc.VideoQuality)
+			payload := []byte("low")
+			if desc.VideoQuality == VideoQualityHigh {
+				payload = []byte("high")
+			}
+			onJPEG(JPEGFrame{Payload: payload})
+			return nopCameraPipelineCloser{}, nil
+		}),
+	})
+
+	lowSnapshot, err := manager.GetSnapshot(context.Background(), CameraStreamDescriptor{
+		CameraID:     "camera-1",
+		Model:        "xiaomi.camera.v1",
+		VideoQuality: VideoQualityLow,
+	})
+	if err != nil {
+		t.Fatalf("first GetSnapshot() error = %v", err)
+	}
+	if !bytes.Equal(lowSnapshot.Payload, []byte("low")) {
+		t.Fatalf("first snapshot bytes = %q, want low", lowSnapshot.Payload)
+	}
+
+	highSnapshot, err := manager.GetSnapshot(context.Background(), CameraStreamDescriptor{
+		CameraID:     "camera-1",
+		Model:        "xiaomi.camera.v1",
+		VideoQuality: VideoQualityHigh,
+	})
+	if err != nil {
+		t.Fatalf("second GetSnapshot() error = %v", err)
+	}
+	if !bytes.Equal(highSnapshot.Payload, []byte("high")) {
+		t.Fatalf("second snapshot bytes = %q, want high", highSnapshot.Payload)
+	}
+	if got, want := started, []VideoQuality{VideoQualityLow, VideoQualityHigh}; !equalVideoQualities(got, want) {
+		t.Fatalf("started qualities = %v, want %v", got, want)
+	}
+}
+
 type cameraPipelineFactoryFunc func(CameraStreamDescriptor, func(JPEGFrame)) (io.Closer, error)
 
 func (f cameraPipelineFactoryFunc) Start(desc CameraStreamDescriptor, onJPEG func(JPEGFrame)) (io.Closer, error) {
@@ -144,4 +186,16 @@ type nopCameraPipelineCloser struct{}
 
 func (nopCameraPipelineCloser) Close() error {
 	return nil
+}
+
+func equalVideoQualities(a []VideoQuality, b []VideoQuality) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for idx := range a {
+		if a[idx] != b[idx] {
+			return false
+		}
+	}
+	return true
 }
