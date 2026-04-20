@@ -100,17 +100,12 @@ func (m *CameraStreamManager) CachedSnapshot(cameraID string) (JPEGFrame, bool) 
 }
 
 func (m *CameraStreamManager) ensureWorker(desc CameraStreamDescriptor) *cameraWorker {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	desc = normalizeCameraStreamDescriptor(desc)
 
-	desc.CameraID = strings.TrimSpace(desc.CameraID)
-	desc.Model = strings.TrimSpace(desc.Model)
-	desc.Region = strings.TrimSpace(desc.Region)
-	desc.AccessToken = strings.TrimSpace(desc.AccessToken)
-	if desc.ChannelCount <= 0 {
-		desc.ChannelCount = 1
-	}
+	m.mu.Lock()
 	if worker, ok := m.workers[desc.CameraID]; ok {
+		m.mu.Unlock()
+		worker.updateDescriptor(desc)
 		return worker
 	}
 	worker := &cameraWorker{
@@ -118,7 +113,47 @@ func (m *CameraStreamManager) ensureWorker(desc CameraStreamDescriptor) *cameraW
 		factory: m.factory,
 	}
 	m.workers[desc.CameraID] = worker
+	m.mu.Unlock()
 	return worker
+}
+
+func normalizeCameraStreamDescriptor(desc CameraStreamDescriptor) CameraStreamDescriptor {
+	desc.CameraID = strings.TrimSpace(desc.CameraID)
+	desc.Model = strings.TrimSpace(desc.Model)
+	desc.Region = strings.TrimSpace(desc.Region)
+	desc.AccessToken = strings.TrimSpace(desc.AccessToken)
+	if desc.ChannelCount <= 0 {
+		desc.ChannelCount = 1
+	}
+	return desc
+}
+
+func (w *cameraWorker) updateDescriptor(desc CameraStreamDescriptor) {
+	if w == nil {
+		return
+	}
+	desc = normalizeCameraStreamDescriptor(desc)
+
+	w.lifecycleMu.Lock()
+	defer w.lifecycleMu.Unlock()
+	if w.desc == desc {
+		return
+	}
+
+	w.desc = desc
+	w.startErr = nil
+	w.startOnce = sync.Once{}
+
+	w.mu.Lock()
+	closer := w.closer
+	w.closer = nil
+	w.snapshot = JPEGFrame{}
+	w.hasFrame = false
+	w.mu.Unlock()
+
+	if closer != nil {
+		_ = closer.Close()
+	}
 }
 
 func (w *cameraWorker) GetSnapshot(ctx context.Context) (JPEGFrame, error) {
